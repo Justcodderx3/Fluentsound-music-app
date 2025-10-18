@@ -1,2 +1,2 @@
-# euphonia-music-app
-Euphonia - Cross-platform Music Player for convenient local music playback
+#Fluentsound-music-app
+Fluentsound - Cross-platform Music Player for convenient local music playback
