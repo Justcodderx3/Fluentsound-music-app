@@ -9,10 +9,10 @@ __pycache__/
 *.log
 logs/
 
-backend/Learning.py
-
 *.db
 *.sqlite
 *.sqlite3
 tracks.db
 music.db
+
+backend/Learning.py
