@@ -28,9 +28,32 @@ class TrackDB(Base):
     add_date = Column(DateTime, default=datetime.now)
 
 
+class UserDB(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(25))
+    add_date = Column(DateTime, default=datetime.now)
+
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+
+fake_users_db = { #for tests
+    "my-secret-key-123": {
+        "user_id": 1,
+        "username": "music_lover",
+        "description": "Люблю музыку",
+        "created_at": "2024-01-01"
+    },
+    "test-key-456": {
+        "user_id": 2,
+        "username": "test_user",
+        "description": "Тестовый пользователь",
+        "created_at": "2024-01-02"
+    }
+}
