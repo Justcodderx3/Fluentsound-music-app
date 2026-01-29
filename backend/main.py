@@ -7,6 +7,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 from database import TrackDB, get_db, Base, engine, fake_users_db
 from random import randint
+from sqlalchemy import and_
 
 app = FastAPI(
     title="FluentSound",
@@ -70,9 +71,19 @@ async def read_profile(curent_user: dict = Depends(get_current_user)):
     return curent_user
 
 
+@app.get("/tracks/{track_id}")
+async def get_current_track(track_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    user_id = current_user.get('user_id')
+    if not user_id:
+        raise HTTPException(status_code=401, detail='User ID not found in token')
+    track_data = db.query(TrackDB).filter(and_(TrackDB.id == track_id, TrackDB.user_id == user_id)).first()
+    if not track_data:
+        raise HTTPException(status_code=404, detail='Track not found')
+    return {"id": track_data.id, "track_name": track_data.track_name, "artist_name": track_data.artist_name}
+
+
 # @app.post("/tracks/")
 # async def create_track():
-#     pass
 
 
 if __name__ == '__main__':
