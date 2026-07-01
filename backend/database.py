@@ -24,6 +24,7 @@ class UserDB(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(25))
     add_date = Column(DateTime, default=datetime.now)
+    password = Column(String)
 
 
 class TrackDB(Base):

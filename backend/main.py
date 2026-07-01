@@ -2,17 +2,18 @@ from fastapi import FastAPI, Depends, Header, HTTPException
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
-# import os
 from pathlib import Path
 from sqlalchemy.orm import Session
-from database import TrackDB, get_db, Base, engine, fake_users_db
+from database import TrackDB, get_db, Base, engine, fake_users_db, UserDB
 from random import randint
 from sqlalchemy import and_
+from passlib.context import CryptContext
 
+pwd_context = CryptContext(schemes=['bcrypt'])
 app = FastAPI(
     title="FluentSound",
     version="0.0.0",
-    description="Оффлайн музыкальный плеер для андроид",
+    description="Offline music player for android",
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -37,8 +38,13 @@ class TrackUpdate(BaseModel):
     def validate_track_path(cls, v: Path):
         track_extensions = {".mp3", ".m4a", ".ogg", ".flac"}
         if v.suffix.lower() not in track_extensions:
-            raise ValueError(f"Неподдерживаемый формат файла:{v.suffix}")
+            raise ValueError(f"Unsupported file format:{v.suffix}")
         return v
+
+
+class UserCreate(BaseModel):
+    username: str = Field(..., min_length=4, max_length=25)
+    password: str = Field(..., min_length=8, max_length=100)
 
 
 class User(BaseModel):
@@ -51,6 +57,19 @@ class TrackResponse(BaseModel):
     id: int
     track_name: str
     artist_name: Optional[str] = None
+
+
+class TrackCreate(BaseModel):
+    track_name: str
+    artist_name: Optional[str] = None
+    file_path: Path
+
+    @field_validator("file_path")
+    def validate_track_path(cls, v: Path):
+        track_extensions = {".mp3", ".m4a", ".ogg", ".flac"}
+        if v.suffix.lower() not in track_extensions:
+            raise ValueError(f"Unsupported file format:{v.suffix}")
+        return v
 
 
 @app.get("/tracks", response_model=list[TrackResponse])
@@ -66,24 +85,83 @@ async def get_current_user(x_api_key: str = Header(..., alias="X-API-Key")):
     return user_data
 
 
+@app.post('/users')
+async def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
+    if db.query(UserDB).filter(UserDB.username == user_data.username).first():
+        raise HTTPException(status_code=400, detail=f'Username already taken')
+    hashed_password = pwd_context.hash(user_data.password)
+    db_users = UserDB(
+        username=user_data.username,
+        password=hashed_password
+    )
+    db.add(db_users)
+    db.commit()
+    db.refresh(db_users)
+    return {'message': f'User created successfully'}
+
+
 @app.get("/profile")
-async def read_profile(curent_user: dict = Depends(get_current_user)):
-    return curent_user
+async def read_profile(current_user: dict = Depends(get_current_user)):
+    return current_user
 
 
 @app.get("/tracks/{track_id}")
-async def get_current_track(track_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
-    user_id = current_user.get('user_id')
-    if not user_id:
-        raise HTTPException(status_code=401, detail='User ID not found in token')
+async def get_current_track(track_id: int, db: Session = Depends(get_db),
+                            current_user: dict = Depends(get_current_user)):
+    user_id = current_user['user_id']
     track_data = db.query(TrackDB).filter(and_(TrackDB.id == track_id, TrackDB.user_id == user_id)).first()
     if not track_data:
         raise HTTPException(status_code=404, detail='Track not found')
     return {"id": track_data.id, "track_name": track_data.track_name, "artist_name": track_data.artist_name}
 
 
-# @app.post("/tracks/")
-# async def create_track():
+@app.post('/tracks', response_model=TrackResponse)
+async def create_track(track_data: TrackCreate, db: Session = Depends(get_db),
+                       current_user: dict = Depends(get_current_user)):
+    db_track = TrackDB(
+        track_name=track_data.track_name,
+        artist_name=track_data.artist_name,
+        file_path=str(track_data.file_path),
+        file_format=track_data.file_path.suffix[1:],
+        user_id=current_user['user_id']
+    )
+    db.add(db_track)
+    db.commit()
+    db.refresh(db_track)
+
+    return {'id': db_track.id,
+            'track_name': db_track.track_name,
+            'artist_name': db_track.artist_name
+            }
+
+
+@app.put('/tracks/{track_id}', response_model=TrackUpdate)
+async def track_update(track_id: int, update_data: TrackUpdate, db: Session = Depends(get_db),
+                       current_user: dict = Depends(get_current_user)):
+    track = db.query(TrackDB).filter(and_(TrackDB.id == track_id, TrackDB.user_id == current_user['user_id'])).first()
+    if not track:
+        raise HTTPException(status_code=404, detail='Track not found')
+    update_dict = update_data.dict(exclude_unset=True)
+    for field, value in update_dict.items():
+        setattr(track, field, value)
+
+    db.commit()
+    db.refresh(track)
+    return {'id': track.id, 'track_name': track.track_name, 'artist_name': track.artist_name}
+
+
+@app.delete('/tracks/{track_id}')
+async def delete_track(track_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    track = db.query(TrackDB).filter(and_(TrackDB.id == track_id, TrackDB.user_id == current_user['user_id'])).first()
+    if not track:
+        raise HTTPException(status_code=404, detail='Track not found')
+
+    deleted_track_id = track.id
+    deleted_track_name = track.track_name
+
+    db.delete(track)
+    db.commit()
+    return {'message': 'Track successfuly deleted', 'id': deleted_track_id, 'track_name': deleted_track_name}
 
 
 if __name__ == '__main__':
