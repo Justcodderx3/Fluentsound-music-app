@@ -14,5 +14,7 @@ logs/
 *.sqlite3
 tracks.db
 music.db
+users.db
+.env
 
 backend/Learning.py

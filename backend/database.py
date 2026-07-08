@@ -44,19 +44,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-fake_users_db = {  # for tests
-    "my-secret-key-123": {
-        "user_id": 1,
-        "username": "music_lover",
-        "description": "Люблю музыку",
-        "created_at": "2024-01-01"
-    },
-    "test-key-456": {
-        "user_id": 2,
-        "username": "test_user",
-        "description": "Тестовый пользователь",
-        "created_at": "2024-01-02"
-    }
-}

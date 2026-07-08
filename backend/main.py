@@ -1,13 +1,15 @@
-from fastapi import FastAPI, Depends, Header, HTTPException
+from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
 from pathlib import Path
 from sqlalchemy.orm import Session
-from database import TrackDB, get_db, Base, engine, fake_users_db, UserDB
+from database import TrackDB, get_db, Base, engine, UserDB
 from random import randint
 from sqlalchemy import and_
 from passlib.context import CryptContext
+from auth import create_access_token, get_current_user
+from fastapi.security import OAuth2PasswordRequestForm
 
 pwd_context = CryptContext(schemes=['bcrypt'])
 app = FastAPI(
@@ -78,13 +80,6 @@ def all_added_tracks_return(db: Session = Depends(get_db)):
     return tracks
 
 
-async def get_current_user(x_api_key: str = Header(..., alias="X-API-Key")):
-    user_data = fake_users_db.get(x_api_key)
-    if not user_data:
-        raise HTTPException(status_code=401, detail=f"User not found")
-    return user_data
-
-
 @app.post('/users')
 async def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
     if db.query(UserDB).filter(UserDB.username == user_data.username).first():
@@ -98,6 +93,18 @@ async def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_users)
     return {'message': f'User created successfully'}
+
+
+@app.post('/users/login')
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.query(UserDB).filter(UserDB.username == form_data.username).first()
+    if not user:
+        raise HTTPException(status_code=401, detail=f'User not found')
+    verify_password = pwd_context.verify(form_data.password, user.password)
+    if not verify_password:
+        raise HTTPException(status_code=401, detail=f'Uncorrect password')
+    token = create_access_token({'user_id': user.id, 'username': user.username})
+    return {'access_token': token, 'token_type': 'bearer'}
 
 
 @app.get("/profile")
