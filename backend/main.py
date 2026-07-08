@@ -1,15 +1,16 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
 from pathlib import Path
 from sqlalchemy.orm import Session
 from database import TrackDB, get_db, Base, engine, UserDB
-from random import randint
 from sqlalchemy import and_
 from passlib.context import CryptContext
 from auth import create_access_token, get_current_user
 from fastapi.security import OAuth2PasswordRequestForm
+import os
+import uuid
 
 pwd_context = CryptContext(schemes=['bcrypt'])
 app = FastAPI(
@@ -26,9 +27,10 @@ def startup():
     Base.metadata.create_all(bind=engine)
 
 
-class TrackInfo(BaseModel):
-    id: int = Field()
-    add_date: datetime = Field(default_factory=datetime.now)
+# TODO: finalize it after file upload
+# class TrackInfo(BaseModel):
+#     id: int = Field()
+#     add_date: datetime = Field(default_factory=datetime.now)
 
 
 class TrackUpdate(BaseModel):
@@ -47,12 +49,6 @@ class TrackUpdate(BaseModel):
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=4, max_length=25)
     password: str = Field(..., min_length=8, max_length=100)
-
-
-class User(BaseModel):
-    username: Optional[str] = Field(f'user{randint(999999, 10000000)}', min_length=4, max_length=25)
-    description: Optional[str] = Field(None, min_length=1, max_length=350)
-    add_date: datetime = Field(default_factory=datetime.now)
 
 
 class TrackResponse(BaseModel):
@@ -157,6 +153,45 @@ async def track_update(track_id: int, update_data: TrackUpdate, db: Session = De
     return {'id': track.id, 'track_name': track.track_name, 'artist_name': track.artist_name}
 
 
+@app.post('/tracks/upload')
+async def upload_track(
+        file: UploadFile = File(...),
+        track_name: str = Form(...),
+        artist_name: Optional[str] = Form(None),
+        db: Session = Depends(get_db),
+        current_user: dict = Depends(get_current_user)
+):
+    extension = Path(file.filename).suffix
+    track_extensions = {".mp3", ".m4a", ".ogg", ".flac"}
+    if extension not in track_extensions:
+        raise HTTPException(status_code=400, detail=f"Unsupported file format:{extension}")
+    unique_filename = f"{uuid.uuid4()}{extension}"
+    data = await file.read()
+    UPLOAD_DIR = 'uploads'
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    with open(file_path, 'wb') as f:
+        f.write(data)
+    db_track = TrackDB(
+        track_name=track_name,
+        artist_name=artist_name,
+        file_path=str(file_path),
+        file_format=extension[1:],
+        user_id=current_user['user_id']
+    )
+    db.add(db_track)
+    db.commit()
+    db.refresh(db_track)
+    return (
+        {
+            'message': 'Track successfully uploaded',
+            'id': db_track.id,
+            'track_name': db_track.track_name,
+            'artist_name': db_track.artist_name
+        }
+    )
+
+
 @app.delete('/tracks/{track_id}')
 async def delete_track(track_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     track = db.query(TrackDB).filter(and_(TrackDB.id == track_id, TrackDB.user_id == current_user['user_id'])).first()
@@ -166,9 +201,15 @@ async def delete_track(track_id: int, db: Session = Depends(get_db), current_use
     deleted_track_id = track.id
     deleted_track_name = track.track_name
 
+    try:
+        os.remove(track.file_path)
+    except FileNotFoundError:
+        pass
+
     db.delete(track)
     db.commit()
-    return {'message': 'Track successfuly deleted', 'id': deleted_track_id, 'track_name': deleted_track_name}
+
+    return {'message': 'Track successfully deleted', 'id': deleted_track_id, 'track_name': deleted_track_name}
 
 
 if __name__ == '__main__':
