@@ -18,3 +18,5 @@ users.db
 .env
 
 backend/Learning.py
+backend/uploads/
+

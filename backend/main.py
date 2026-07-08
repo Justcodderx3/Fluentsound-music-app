@@ -21,6 +21,12 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+MEDIA_TYPES = {
+    "mp3": "audio/mpeg",
+    "m4a": "audio/mp4",
+    "ogg": "audio/ogg",
+    "flac": "audio/flac"
+}
 
 
 @app.on_event("startup")
@@ -220,6 +226,13 @@ async def download_track(track_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail='Track not found')
     return FileResponse(track.file_path, filename=f"{track.track_name}.{track.file_format}")
 
+
+@app.get('/tracks/{track_id}/stream')
+async def stream_track(track_id: int, db: Session = Depends(get_db)):
+    track = db.query(TrackDB).filter(TrackDB.id == track_id).first()
+    if not track:
+        raise HTTPException(status_code=404, detail='Track not found')
+    return FileResponse(track.file_path, media_type=MEDIA_TYPES.get(track.file_format))
 
 if __name__ == '__main__':
     import uvicorn
