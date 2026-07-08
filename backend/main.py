@@ -11,6 +11,7 @@ from auth import create_access_token, get_current_user
 from fastapi.security import OAuth2PasswordRequestForm
 import os
 import uuid
+from fastapi.responses import FileResponse
 
 pwd_context = CryptContext(schemes=['bcrypt'])
 app = FastAPI(
@@ -210,6 +211,14 @@ async def delete_track(track_id: int, db: Session = Depends(get_db), current_use
     db.commit()
 
     return {'message': 'Track successfully deleted', 'id': deleted_track_id, 'track_name': deleted_track_name}
+
+
+@app.get('/tracks/{track_id}/download')
+async def download_track(track_id: int, db: Session = Depends(get_db)):
+    track = db.query(TrackDB).filter(TrackDB.id == track_id).first()
+    if not track:
+        raise HTTPException(status_code=404, detail='Track not found')
+    return FileResponse(track.file_path, filename=f"{track.track_name}.{track.file_format}")
 
 
 if __name__ == '__main__':
