@@ -20,3 +20,9 @@ users.db
 backend/Learning.py
 backend/uploads/
 
+.buildozer/
+bin/
+*.apk
+
+Thumbs.db
+desktop.ini

@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
-from datetime import datetime
 from pathlib import Path
 from sqlalchemy.orm import Session
 from database import TrackDB, get_db, Base, engine, UserDB
@@ -12,6 +11,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 import os
 import uuid
 from fastapi.responses import FileResponse
+from datetime import datetime
 
 pwd_context = CryptContext(schemes=['bcrypt'])
 app = FastAPI(
@@ -32,12 +32,6 @@ MEDIA_TYPES = {
 @app.on_event("startup")
 def startup():
     Base.metadata.create_all(bind=engine)
-
-
-# TODO: finalize it after file upload
-# class TrackInfo(BaseModel):
-#     id: int = Field()
-#     add_date: datetime = Field(default_factory=datetime.now)
 
 
 class TrackUpdate(BaseModel):
@@ -62,6 +56,7 @@ class TrackResponse(BaseModel):
     id: int
     track_name: str
     artist_name: Optional[str] = None
+    add_date: datetime
 
 
 class TrackCreate(BaseModel):
@@ -105,7 +100,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         raise HTTPException(status_code=401, detail=f'User not found')
     verify_password = pwd_context.verify(form_data.password, user.password)
     if not verify_password:
-        raise HTTPException(status_code=401, detail=f'Uncorrect password')
+        raise HTTPException(status_code=401, detail=f'Incorrect password')
     token = create_access_token({'user_id': user.id, 'username': user.username})
     return {'access_token': token, 'token_type': 'bearer'}
 
@@ -174,9 +169,9 @@ async def upload_track(
         raise HTTPException(status_code=400, detail=f"Unsupported file format:{extension}")
     unique_filename = f"{uuid.uuid4()}{extension}"
     data = await file.read()
-    UPLOAD_DIR = 'uploads'
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    upload_dir = 'uploads'
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, unique_filename)
     with open(file_path, 'wb') as f:
         f.write(data)
     db_track = TrackDB(
@@ -233,6 +228,7 @@ async def stream_track(track_id: int, db: Session = Depends(get_db)):
     if not track:
         raise HTTPException(status_code=404, detail='Track not found')
     return FileResponse(track.file_path, media_type=MEDIA_TYPES.get(track.file_format))
+
 
 if __name__ == '__main__':
     import uvicorn

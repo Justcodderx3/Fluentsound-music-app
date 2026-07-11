@@ -1,0 +1,52 @@
+#:import Window kivy.core.window.Window
+
+<LoginScreen>:
+    canvas.before:
+        Rectangle:
+            texture: root.gradient_texture
+            pos: self.pos
+            size: self.size
+    MDCard:
+        pos_hint: {"center_x": .5,"center_y": .5}
+        size_hint_x: 0.35
+        size_hint_y: 0.92
+    MDBoxLayout:
+
+        orientation: 'vertical'
+        spacing: '20dp'
+        padding: '40dp'
+        MDIconButton:
+            icon: "theme-light-dark"
+            pos_hint: {"center_x": .65, "center_y": 1}
+            on_release: app.toggle_theme()
+
+        MDLabel:
+            text: "FluentSound"
+            halign: "center"
+
+            font_style: "H4"
+            theme_text_color: "Primary"
+
+
+
+        MDTextField:
+            hint_text: "Username"
+            icon_left: "account"
+
+            id: username_field
+            size_hint_x: 0.2
+            pos_hint: {"center_x": .5}
+
+        MDTextField:
+            hint_text: "Password"
+            password: True
+            icon_left: "key-variant"
+
+            id: password_field
+            size_hint_x: 0.2
+            pos_hint: {"center_x": .5}
+
+        MDRaisedButton:
+            text: "Login"
+            pos_hint: {"center_x": .5}
+            on_release: root.process_login(username_field.text, password_field.text)
