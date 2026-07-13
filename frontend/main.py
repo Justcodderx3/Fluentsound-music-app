@@ -4,6 +4,7 @@ from kivymd.uix.screenmanager import ScreenManager
 from kivymd.uix.screen import Screen
 from kivy.properties import ObjectProperty
 from kivy.graphics.texture import Texture
+from api_client import login
 
 
 class LoginScreen(Screen):
@@ -17,7 +18,13 @@ class LoginScreen(Screen):
         self.create_texture(LoginScreen.DARK_GRADIENT)
 
     def process_login(self, username, password):
-        print(f'Login: {username}, Password: {password}')
+        success, result = login(username, password)
+        if success is True:
+            app = MDApp.get_running_app()
+            app.save_token(result['access_token'])
+            self.ids.error_label.text = ''
+        else:
+            self.ids.error_label.text = result
 
     def create_texture(self, gradient_mode):
         pixels = bytearray(gradient_mode)
@@ -35,6 +42,10 @@ class LoginScreen(Screen):
 
 class MainApp(MDApp):
     is_dark = True
+    access_token = None
+
+    def save_token(self, token):
+        self.access_token = token
 
     def build(self):
         self.theme_cls.theme_style = 'Dark'
