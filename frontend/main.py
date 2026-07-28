@@ -2,12 +2,14 @@ from kivymd.app import MDApp
 from kivy.app import App
 from kivymd.uix.screenmanager import ScreenManager
 from kivymd.uix.screen import Screen
+from kivymd.uix.menu import MDDropdownMenu
 from kivy.properties import ObjectProperty
 from kivy.graphics.texture import Texture
 from api_client import login
+from i18n import _
 
 
-class LoginScreen(Screen):
+class LoginScreen(Screen, ):
     gradient_texture = ObjectProperty(None)
 
     LIGHT_GRADIENT = [160, 32, 240, 255, 0, 255, 255, 255]
@@ -26,6 +28,35 @@ class LoginScreen(Screen):
         else:
             self.ids.error_label.text = result
 
+    def translate_texts(self):
+        self.ids.username_field.hint_text = _('username_hint')
+        self.ids.password_field.hint_text = _("password_hint")
+        self.ids.Login_button.text = _("Login_button")
+
+    def open_language_menu(self):
+        app = MDApp.get_running_app()
+        color = self.get_theme_hex_color()
+        menu_items = [
+            {
+                "text": "English",
+                "text_color": color if app.current_language == "en" else app.theme_cls.text_color,
+                "on_release": lambda: self.set_language("en"),
+            },
+            {
+                "text": "Русский",
+                "text_color": color if app.current_language == "ru" else app.theme_cls.text_color,
+                "on_release": lambda: self.set_language("ru"),
+            }
+        ]
+        self.menu = MDDropdownMenu(caller=self.ids.language_button, items=menu_items)
+        self.menu.open()
+
+    def set_language(self, lang_code):
+        app = MDApp.get_running_app()
+        app.current_language = lang_code
+        self.translate_texts()
+        self.menu.dismiss()
+
     def create_texture(self, gradient_mode):
         pixels = bytearray(gradient_mode)
         texture = Texture.create(size=(1, 2), colorfmt='rgba')
@@ -39,10 +70,18 @@ class LoginScreen(Screen):
         else:
             LoginScreen.create_texture(self, LoginScreen.LIGHT_GRADIENT)
 
+    def get_theme_hex_color(self):
+        app = MDApp.get_running_app()
+        if app.is_dark:
+            return "A020F0"
+        else:
+            return "00FFFF"
+
 
 class MainApp(MDApp):
     is_dark = True
     access_token = None
+    current_language = "en"
 
     def save_token(self, token):
         self.access_token = token
