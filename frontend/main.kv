@@ -1,4 +1,5 @@
 #:import Window kivy.core.window.Window
+#:import _ i18n._
 
 <LoginScreen>:
     canvas.before:
@@ -10,15 +11,21 @@
         pos_hint: {"center_x": .5,"center_y": .5}
         size_hint_x: 0.35
         size_hint_y: 0.92
+    MDIconButton:
+        icon: "translate"
+        pos_hint: {"center_x": .36, "center_y": .89}
+        id: language_button
+        on_release: root.open_language_menu()
+    MDIconButton:
+        icon: "theme-light-dark"
+        pos_hint: {"center_x": .64, "center_y": .89}
+        on_release: app.toggle_theme()
+
     MDBoxLayout:
 
         orientation: 'vertical'
         spacing: '20dp'
         padding: '40dp'
-        MDIconButton:
-            icon: "theme-light-dark"
-            pos_hint: {"center_x": .65, "center_y": 1}
-            on_release: app.toggle_theme()
 
         MDLabel:
             text: "FluentSound"
@@ -38,7 +45,7 @@
 
 
         MDTextField:
-            hint_text: "Username"
+            hint_text: _("username_hint")
             icon_left: "account"
 
             id: username_field
@@ -46,7 +53,7 @@
             pos_hint: {"center_x": .5}
 
         MDTextField:
-            hint_text: "Password"
+            hint_text: _("password_hint")
             password: True
             icon_left: "key-variant"
 
@@ -55,6 +62,7 @@
             pos_hint: {"center_x": .5}
 
         MDRaisedButton:
-            text: "Login"
+            id: Login_button
+            text: _("Login_button")
             pos_hint: {"center_x": .5}
             on_release: root.process_login(username_field.text, password_field.text)
