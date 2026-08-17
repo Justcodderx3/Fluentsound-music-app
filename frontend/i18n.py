@@ -4,7 +4,7 @@ TRANSLATIONS = {
     'en': {
         "username_hint": "Username",
         "password_hint": "Password",
-        "Login_button": "Login"
+        "Login_button": "Sign in"
     },
     'ru': {
            "username_hint": "Никнейм",
