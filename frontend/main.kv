@@ -66,3 +66,44 @@
             text: _("Login_button")
             pos_hint: {"center_x": .5}
             on_release: root.process_login(username_field.text, password_field.text)
+
+<HomeScreen>:
+    canvas.before:
+        Rectangle:
+            texture: root.gradient_texture
+            pos: self.pos
+            size: self.size
+    MDCard:
+        pos_hint: {"center_x": .5,"center_y": .5}
+        size_hint_x: 0.99
+        size_hint_y: 0.98
+
+    MDNavigationLayout:
+        ScreenManager:
+            Screen:
+
+                MDLabel:
+                    text: "ну ша баля"
+                    halign: "center"
+
+        MDNavigationDrawer:
+            id: homepage_menu
+            state: "close"
+            anchor: "left"
+            MDCard:
+                id: drawer_footer
+                pos_hint: {"center_x": .5,"center_y": 0.03}
+                size_hint_y: None
+                size_hint_x: 1
+                height: '56dp'
+                md_bg_color: 0, 0, 0, 0.4
+                FloatLayout:
+                    MDIconButton:
+                        icon: "theme-light-dark"
+                        pos_hint: {"center_x": 0.9, "center_y": .5}
+                        on_release: app.toggle_theme()
+                    MDIconButton:
+                        icon: "translate"
+                        pos_hint: {"center_x": .75, "center_y": .5}
+                        id: language_button
+                        on_release: root.open_language_menu()

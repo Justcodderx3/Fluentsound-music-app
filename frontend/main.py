@@ -25,6 +25,7 @@ class LoginScreen(Screen, ):
             app = MDApp.get_running_app()
             app.save_token(result['access_token'])
             self.ids.error_label.text = ''
+            self.manager.current = 'home'
         else:
             self.ids.error_label.text = result
 
@@ -78,6 +79,30 @@ class LoginScreen(Screen, ):
             return "00FFFF"
 
 
+class HomeScreen(Screen):
+    gradient_texture = ObjectProperty(None)
+
+    LIGHT_GRADIENT = [160, 32, 240, 255, 0, 255, 255, 255]
+    DARK_GRADIENT = [0, 255, 255, 255, 160, 32, 240, 255]
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.create_texture(LoginScreen.DARK_GRADIENT)
+
+    def create_texture(self, gradient_mode):
+        pixels = bytearray(gradient_mode)
+        texture = Texture.create(size=(1, 2), colorfmt='rgba')
+        texture.blit_buffer(pixels, colorfmt='rgba', bufferfmt='ubyte')
+        texture.mag_filter = 'linear'
+        self.gradient_texture = texture
+
+    def update_gradient(self, is_dark: bool):
+        if is_dark is True:
+            LoginScreen.create_texture(self, LoginScreen.DARK_GRADIENT)
+        else:
+            LoginScreen.create_texture(self, LoginScreen.LIGHT_GRADIENT)
+
+
 class MainApp(MDApp):
     is_dark = True
     access_token = None
@@ -91,12 +116,14 @@ class MainApp(MDApp):
         self.theme_cls.primary_palette = 'Purple'
         sm = ScreenManager()
         login_screen = LoginScreen(name='login')
+        home_screen = HomeScreen(name='home')
         sm.add_widget(login_screen)
+        sm.add_widget(home_screen)
         return sm
 
     def toggle_theme(self):
         self.is_dark = not self.is_dark
-        if self.is_dark is True:
+        if self.is_dark:
             self.theme_cls.theme_style = 'Dark'
             self.theme_cls.primary_palette = 'Purple'
         else:
@@ -104,6 +131,8 @@ class MainApp(MDApp):
             self.theme_cls.primary_palette = 'Cyan'
         login_screen = self.root.get_screen('login')
         login_screen.update_gradient(self.is_dark)
+        home_screen = self.root.get_screen('home')
+        home_screen.update_gradient(self.is_dark)
 
 
 if __name__ == '__main__':
