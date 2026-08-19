@@ -4,12 +4,20 @@ TRANSLATIONS = {
     'en': {
         "username_hint": "Username",
         "password_hint": "Password",
-        "Login_button": "Sign in"
+        "Login_button": "Sign in",
+        "error_user_not_found": "User not found",
+        "error_incorrect_password": "Incorrect password",
+        "error_server_unavailable": "Server unavailable",
+        "error_unknown": "Unknown error"
     },
     'ru': {
            "username_hint": "Никнейм",
            "password_hint": "Пароль",
-           "Login_button": "Вход"
+           "Login_button": "Вход",
+            "error_user_not_found": "Пользователь не найден",
+            "error_incorrect_password": "Неверный пароль",
+            "error_server_unavailable": "Сервер недоступен",
+            "error_unknown": "Неизвестная ошибка"
            }
 }
 

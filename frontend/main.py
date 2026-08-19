@@ -27,7 +27,7 @@ class LoginScreen(Screen, ):
             self.ids.error_label.text = ''
             self.manager.current = 'home'
         else:
-            self.ids.error_label.text = result
+            self.ids.error_label.text = _(result)
 
     def translate_texts(self):
         self.ids.username_field.hint_text = _('username_hint')
