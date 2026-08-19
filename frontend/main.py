@@ -6,6 +6,8 @@ from kivymd.uix.menu import MDDropdownMenu
 from kivy.properties import ObjectProperty
 from kivy.graphics.texture import Texture
 from api_client import login
+from kivymd.uix.textfield import MDTextField
+import re
 from i18n import _
 
 
@@ -133,6 +135,29 @@ class MainApp(MDApp):
         login_screen.update_gradient(self.is_dark)
         home_screen = self.root.get_screen('home')
         home_screen.update_gradient(self.is_dark)
+
+
+class CustomTextField(MDTextField):
+    def keyboard_on_key_down(self, window, keycode, text, modifiers):
+        key = keycode[1]
+
+        if 'ctrl' in modifiers and key == 'backspace':
+            self.delete_before_cursor()
+            return True
+        return super().keyboard_on_key_down(window, keycode, text, modifiers)
+
+    def delete_before_cursor(self):
+        cursor_pos = self.cursor_index()
+        if cursor_pos == 0:
+            return
+        text_before = self.text[:cursor_pos]
+        text_after = self.text[cursor_pos:]
+        match = re.search(r'(\s+|\w+|[^\w\s]+)\s*$', text_before)
+        if match:
+            new_text_before = text_before[:match.start()]
+            self.text = new_text_before + text_after
+            new_cursor_pos = len(new_text_before)
+            self.cursor = self.get_cursor_from_index(new_cursor_pos)
 
 
 if __name__ == '__main__':
